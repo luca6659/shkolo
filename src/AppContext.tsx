@@ -28,6 +28,7 @@ type AppContextValue = {
   authReady: boolean
   passwordRecovery: boolean
   resetPassword: (email: string) => Promise<string | null>
+  verifyRecoveryCode: (email: string, code: string) => Promise<string | null>
   updatePassword: (password: string) => Promise<string | null>
   login: (email: string, password: string) => Promise<string | null>
   register: (name: string, email: string, password: string) => Promise<string | null>
@@ -136,10 +137,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const resetPassword = async (email: string) => {
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo: `${window.location.origin}/` })
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase())
       return error ? authError(error.message) : null
     } catch (error) {
       return authError(error instanceof Error ? error.message : 'Не удалось отправить письмо.')
+    }
+  }
+
+  const verifyRecoveryCode = async (email: string, code: string) => {
+    try {
+      const { error } = await supabase.auth.verifyOtp({ email: email.trim().toLowerCase(), token: code, type: 'recovery' })
+      if (!error) setPasswordRecovery(true)
+      return error ? authError(error.message) : null
+    } catch (error) {
+      return authError(error instanceof Error ? error.message : 'Не удалось подтвердить код.')
     }
   }
 
@@ -228,7 +239,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }
 
   const value = useMemo<AppContextValue>(() => ({
-    user, authReady, passwordRecovery, resetPassword, updatePassword, login, register, verifyEmail, resendCode, logout,
+    user, authReady, passwordRecovery, resetPassword, verifyRecoveryCode, updatePassword, login, register, verifyEmail, resendCode, logout,
     page, setPage, subject, setSubjectId, lessonOpen, activeLessonId, completedLessons,
     startLesson: (lessonId = 4) => { setActiveLessonId(lessonId); setLessonOpen(true) }, closeLesson: () => setLessonOpen(false),
     coins, gems, xp, streak, completed, finishLesson, buyItem, owned, avatar, setAvatar,

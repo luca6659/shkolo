@@ -4,8 +4,8 @@ import { useApp } from '../AppContext'
 import './AuthRecovery.css'
 
 export default function AuthScreen() {
-  const { login, register, verifyEmail, resendCode, resetPassword, updatePassword, passwordRecovery } = useApp()
-  const [mode, setMode] = useState<'login' | 'register' | 'verify' | 'reset' | 'new-password'>('login')
+  const { login, register, verifyEmail, resendCode, resetPassword, verifyRecoveryCode, updatePassword, passwordRecovery } = useApp()
+  const [mode, setMode] = useState<'login' | 'register' | 'verify' | 'reset' | 'recovery-code' | 'new-password'>('login')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -39,7 +39,7 @@ export default function AuthScreen() {
       const problem = await resetPassword(email)
       setBusy(false)
       if (problem) setError(problem)
-      else { setNotice('Ссылка для сброса отправлена. Проверь почту и спам.'); setCooldown(60) }
+      else { setMode('recovery-code'); setNotice('Код отправлен. Проверь почту и спам.'); setCooldown(60); setCode('') }
       return
     }
     if (mode === 'new-password') {
@@ -50,12 +50,13 @@ export default function AuthScreen() {
       if (problem) setError(problem)
       return
     }
-    if (mode === 'verify') {
+    if (mode === 'verify' || mode === 'recovery-code') {
       if (code.length !== 6) { setError('Введи все 6 цифр из письма.'); return }
       setBusy(true)
-      const problem = await verifyEmail(email, code)
+      const problem = mode === 'verify' ? await verifyEmail(email, code) : await verifyRecoveryCode(email, code)
       setBusy(false)
       if (problem) setError(problem)
+      else if (mode === 'recovery-code') { setMode('new-password'); setPassword(''); setCode('') }
       return
     }
     if (mode === 'register' && name.trim().length < 2) { setError('Напиши имя — минимум 2 символа.'); return }
@@ -71,7 +72,7 @@ export default function AuthScreen() {
   const resend = async () => {
     if (cooldown > 0 || busy) return
     setBusy(true); setError(''); setNotice('')
-    const problem = await resendCode(email)
+    const problem = mode === 'verify' ? await resendCode(email) : await resetPassword(email)
     setBusy(false)
     if (problem) setError(problem)
     else { setNotice('Новый код уже летит на почту.'); setCooldown(60); setCode('') }
@@ -92,22 +93,23 @@ export default function AuthScreen() {
           <div className="auth-heading"><span className="auth-kicker">{mode === 'login' ? 'С ВОЗВРАЩЕНИЕМ' : 'ПЕРВЫЙ ШАГ'}</span><h2>{mode === 'login' ? 'Снова на связи!' : 'Создай свой аккаунт'}</h2><p>{mode === 'login' ? 'Продолжи с того места, где остановился.' : 'Имя, почта, пароль — и код из письма.'}</p></div>
         </>}
         {mode === 'verify' && <div className="auth-heading verify-heading"><span className="verify-icon"><MailCheck size={30} /></span><span className="auth-kicker">ПРОВЕРЬ ПОЧТУ</span><h2>Код уже в письме</h2><p>Отправили 6 цифр на <b>{email}</b>. Введи их ниже, чтобы подтвердить аккаунт.</p></div>}
-        {mode === 'reset' && <div className="auth-heading verify-heading"><span className="verify-icon"><Mail size={30} /></span><span className="auth-kicker">ВОССТАНОВЛЕНИЕ</span><h2>Забыл пароль?</h2><p>Ничего страшного. Отправим ссылку для создания нового пароля на твою почту.</p></div>}
+        {mode === 'reset' && <div className="auth-heading verify-heading"><span className="verify-icon"><Mail size={30} /></span><span className="auth-kicker">ВОССТАНОВЛЕНИЕ</span><h2>Забыл пароль?</h2><p>Ничего страшного. Отправим 6-значный код для создания нового пароля на твою почту.</p></div>}
+        {mode === 'recovery-code' && <div className="auth-heading verify-heading"><span className="verify-icon"><MailCheck size={30} /></span><span className="auth-kicker">ПРОВЕРЬ ПОЧТУ</span><h2>Введи код</h2><p>Отправили 6 цифр на <b>{email}</b>. После подтверждения ты сможешь задать новый пароль.</p></div>}
         {mode === 'new-password' && <div className="auth-heading verify-heading"><span className="verify-icon"><LockKeyhole size={30} /></span><span className="auth-kicker">ПОЧТИ ГОТОВО</span><h2>Новый пароль</h2><p>Придумай новый пароль для своего аккаунта. Старый больше не понадобится.</p></div>}
 
         <form onSubmit={submit} className="auth-form">
           {mode === 'register' && <label className="auth-field"><span>Как тебя зовут?</span><div><UserRound size={20} /><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Например, Амир" autoComplete="name" /></div></label>}
           {(mode === 'login' || mode === 'register' || mode === 'reset') && <label className="auth-field"><span>Email</span><div><Mail size={20} /><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" autoComplete="email" /></div></label>}
           {(mode === 'login' || mode === 'register' || mode === 'new-password') && <label className="auth-field"><span>{mode === 'new-password' ? 'Новый пароль' : 'Пароль'}</span><div><LockKeyhole size={20} /><input type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Минимум 6 символов" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} /><button type="button" className="password-toggle" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}>{showPassword ? <EyeOff size={19} /> : <Eye size={19} />}</button></div></label>}
-          {mode === 'verify' && <label className="auth-field code-field"><span>Код подтверждения</span><div><MailCheck size={22} /><input className="otp-input" inputMode="numeric" pattern="[0-9]*" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="000000" autoComplete="one-time-code" autoFocus aria-label="Шестизначный код" /></div></label>}
+          {(mode === 'verify' || mode === 'recovery-code') && <label className="auth-field code-field"><span>{mode === 'verify' ? 'Код подтверждения' : 'Код из письма'}</span><div><MailCheck size={22} /><input className="otp-input" inputMode="numeric" pattern="[0-9]*" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="000000" autoComplete="one-time-code" autoFocus aria-label="Шестизначный код" /></div></label>}
           {error && <div className="auth-error" role="alert">{error}</div>}
           {notice && <div className="auth-notice" role="status"><Check size={16} />{notice}</div>}
-          <button className="auth-submit" disabled={busy}>{busy ? <span className="auth-spinner" /> : mode === 'verify' || mode === 'new-password' ? <Check size={21} /> : <ArrowRight size={21} />}{busy ? 'Секунду…' : mode === 'login' ? 'Войти в Школо' : mode === 'register' ? 'Получить код на почту' : mode === 'reset' ? 'Отправить ссылку' : mode === 'new-password' ? 'Сохранить новый пароль' : 'Подтвердить и начать'}</button>
+          <button className="auth-submit" disabled={busy}>{busy ? <span className="auth-spinner" /> : mode === 'verify' || mode === 'recovery-code' || mode === 'new-password' ? <Check size={21} /> : <ArrowRight size={21} />}{busy ? 'Секунду…' : mode === 'login' ? 'Войти в Школо' : mode === 'register' ? 'Получить код на почту' : mode === 'reset' ? 'Отправить код' : mode === 'recovery-code' ? 'Подтвердить код' : mode === 'new-password' ? 'Сохранить новый пароль' : 'Подтвердить и начать'}</button>
         </form>
         {mode === 'login' && <button className="forgot-password" onClick={() => switchMode('reset')}>Забыл пароль?</button>}
         {mode === 'reset' && <button className="auth-back" onClick={() => switchMode('login')}>← Вернуться ко входу</button>}
-        {mode === 'verify' && <><button className="resend-code" onClick={resend} disabled={cooldown > 0 || busy}><RotateCcw size={16} />{cooldown > 0 ? `Отправить снова через ${cooldown} c` : 'Отправить код повторно'}</button><button className="auth-back" onClick={() => switchMode('register')}>← Изменить email или пароль</button></>}
-        <p className="auth-legal">{mode === 'verify' ? 'Письмо может оказаться в спаме. Код действует ограниченное время.' : 'Безопасная авторизация через Supabase. Пароль не сохраняется на устройстве.'}</p>
+        {(mode === 'verify' || mode === 'recovery-code') && <><button className="resend-code" onClick={resend} disabled={cooldown > 0 || busy}><RotateCcw size={16} />{cooldown > 0 ? `Отправить снова через ${cooldown} c` : 'Отправить код повторно'}</button><button className="auth-back" onClick={() => switchMode(mode === 'verify' ? 'register' : 'reset')}>{mode === 'verify' ? '← Изменить email или пароль' : '← Изменить email'}</button></>}
+        <p className="auth-legal">{mode === 'verify' || mode === 'recovery-code' ? 'Письмо может оказаться в спаме. Код действует ограниченное время.' : 'Безопасная авторизация через Supabase. Пароль не сохраняется на устройстве.'}</p>
       </div>
       <p className="auth-footnote">Сделано с зелёной энергией <span>✳</span></p>
     </section>

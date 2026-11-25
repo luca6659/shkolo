@@ -12,3 +12,25 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+
+.auth-form {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.auth-form-card,
+.auth-field,
+.auth-field > div {
+  min-width: 0;
+}
+
+.otp-input {
+  width: 100%;
+}
+
+@media (max-width: 760px) {
+  .otp-input {
+    padding-left: 7px !important;
+    font-size: 24px !important;
+    letter-spacing: 7px;
+  }
+}
