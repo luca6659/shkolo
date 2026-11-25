@@ -1,0 +1,14 @@
+.forgot-password {
+  display: block;
+  margin: 14px auto 0;
+  padding: 6px 10px;
+  color: #66746d;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.forgot-password:hover {
+  color: #173f32;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

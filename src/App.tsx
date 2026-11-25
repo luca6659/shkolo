@@ -25,7 +25,7 @@ const navigation: { id: PageId; label: string; icon: typeof Home }[] = [
 const pageTitles: Record<PageId, string> = { home: 'Твой English era', subjects: 'Навыки английского', shop: 'Drop shop', leaderboard: 'English league', class: 'Кабинет преподавателя', profile: 'Твой профиль' }
 
 function Shell() {
-  const { user, authReady, page, setPage, coins, gems, streak, avatar, lessonOpen, toast, showToast, xp } = useApp()
+  const { user, authReady, passwordRecovery, page, setPage, coins, gems, streak, avatar, lessonOpen, toast, showToast, xp } = useApp()
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [unread, setUnread] = useState(true)
 
@@ -34,7 +34,7 @@ function Shell() {
   const goTo = (id: PageId) => { setPage(id); setNotificationsOpen(false) }
 
   if (!authReady) return <main className="auth-loading"><span className="brand-wordmark">школо<span>!</span></span><div className="auth-spinner" /><p>Подключаем твой English era…</p></main>
-  if (!user) return <AuthScreen />
+  if (!user || passwordRecovery) return <AuthScreen />
 
   return (
     <div className="app-shell">

@@ -26,6 +26,9 @@ function authError(message: string) {
 type AppContextValue = {
   user: User | null
   authReady: boolean
+  passwordRecovery: boolean
+  resetPassword: (email: string) => Promise<string | null>
+  updatePassword: (password: string) => Promise<string | null>
   login: (email: string, password: string) => Promise<string | null>
   register: (name: string, email: string, password: string) => Promise<string | null>
   verifyEmail: (email: string, code: string) => Promise<string | null>
@@ -76,6 +79,7 @@ function stored<T>(key: string, initial: T): T {
 export function AppProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [authReady, setAuthReady] = useState(false)
+  const [passwordRecovery, setPasswordRecovery] = useState(false)
   const [page, setPage] = useState<PageId>('home')
   const [subjectId, setSubjectId] = useState('speaking')
   const [lessonOpen, setLessonOpen] = useState(false)
@@ -123,9 +127,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (!error) applyUser(data.session?.user ?? null)
       if (active) setAuthReady(true)
     }).catch(() => { if (active) setAuthReady(true) })
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => applyUser(session?.user ?? null))
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') setPasswordRecovery(true)
+      applyUser(session?.user ?? null)
+    })
     return () => { active = false; data.subscription.unsubscribe() }
   }, [])
+
+  const resetPassword = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo: `${window.location.origin}/` })
+      return error ? authError(error.message) : null
+    } catch (error) {
+      return authError(error instanceof Error ? error.message : 'Не удалось отправить письмо.')
+    }
+  }
+
+  const updatePassword = async (password: string) => {
+    try {
+      const { error } = await supabase.auth.updateUser({ password })
+      if (!error) setPasswordRecovery(false)
+      return error ? authError(error.message) : null
+    } catch (error) {
+      return authError(error instanceof Error ? error.message : 'Не удалось изменить пароль.')
+    }
+  }
 
   const login = async (email: string, password: string) => {
     try {
@@ -202,13 +228,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }
 
   const value = useMemo<AppContextValue>(() => ({
-    user, authReady, login, register, verifyEmail, resendCode, logout,
+    user, authReady, passwordRecovery, resetPassword, updatePassword, login, register, verifyEmail, resendCode, logout,
     page, setPage, subject, setSubjectId, lessonOpen, activeLessonId, completedLessons,
     startLesson: (lessonId = 4) => { setActiveLessonId(lessonId); setLessonOpen(true) }, closeLesson: () => setLessonOpen(false),
     coins, gems, xp, streak, completed, finishLesson, buyItem, owned, avatar, setAvatar,
     dark, setDark, sound, setSound, notifications, setNotifications, parentMode, setParentMode,
     toast, showToast,
-  }), [user, authReady, page, subject, lessonOpen, activeLessonId, completedLessons, coins, gems, xp, streak, completed, owned, avatar, dark, sound, notifications, parentMode, toast])
+  }), [user, authReady, passwordRecovery, page, subject, lessonOpen, activeLessonId, completedLessons, coins, gems, xp, streak, completed, owned, avatar, dark, sound, notifications, parentMode, toast])
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }
