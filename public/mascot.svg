@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+<defs>
+  <linearGradient id="skin" x1="220" y1="140" x2="300" y2="340" gradientUnits="userSpaceOnUse"><stop stop-color="#EAB17C"/><stop offset="1" stop-color="#CE8754"/></linearGradient>
+  <linearGradient id="cloth" x1="170" y1="95" x2="345" y2="330" gradientUnits="userSpaceOnUse"><stop stop-color="#FFFEF8"/><stop offset="1" stop-color="#E9E9DD"/></linearGradient>
+  <linearGradient id="hoodie" x1="170" y1="310" x2="330" y2="455" gradientUnits="userSpaceOnUse"><stop stop-color="#245C47"/><stop offset="1" stop-color="#123D30"/></linearGradient>
+  <filter id="sticker" x="-35%" y="-35%" width="170%" height="180%"><feMorphology in="SourceAlpha" operator="dilate" radius="9" result="dilate"/><feFlood flood-color="#FFFDF7"/><feComposite in2="dilate" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <filter id="shadow" x="-35%" y="-35%" width="170%" height="180%"><feDropShadow dx="0" dy="9" stdDeviation="4" flood-color="#102D24" flood-opacity=".2"/></filter>
+  <pattern id="shemagh" width="28" height="28" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 0v28M14 0v28" stroke="#B94B4E" stroke-width="3" opacity=".55"/></pattern>
+</defs>
+<g filter="url(#shadow)"><g filter="url(#sticker)" stroke="#183D31" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M185 422c-13 11-20 24-18 34 3 12 22 12 47 2l15-36h-44Z" fill="#C8F547"/>
+  <path d="M327 422c13 11 20 24 18 34-3 12-22 12-47 2l-15-36h44Z" fill="#C8F547"/>
+  <path d="M169 318c-35 4-58 27-65 60-4 20 7 30 22 20l52-38-9-42Z" fill="url(#hoodie)"/>
+  <path d="M341 326c28-10 45-34 48-68l2-37c1-14 18-16 22-3l4 19 10-15c8-12 23-3 18 10l-10 29c-4 53-26 93-69 112l-25-47Z" fill="url(#hoodie)"/>
+  <path d="M402 238c-9-12-17-10-22 2M416 255c-8-7-16-7-23 0" opacity=".45"/>
+  <path d="M171 307c26-17 52-23 85-23 37 0 68 7 91 26 18 35 23 78 13 123-34 19-163 20-203-1-8-48-2-91 14-125Z" fill="url(#hoodie)"/>
+  <path d="M211 313c3 25 17 38 44 38 26 0 41-13 46-38" stroke="#C8F547"/>
+  <path d="M256 351v85" opacity=".45"/>
+  <path d="M225 383h60l-5 37h-50l-5-37Z" fill="#C8F547"/>
+  <path d="M244 389h21l-3 22h-14l-4-22Z" fill="#173F32" stroke="none"/>
+  <path d="M170 129c-17 48-21 107-9 167 7 31 23 48 44 44l24-75-59-136Z" fill="url(#cloth)"/>
+  <path d="M342 129c17 48 21 107 9 167-7 31-23 48-44 44l-24-75 59-136Z" fill="url(#cloth)"/>
+  <path d="M170 129c-17 48-21 107-9 167 7 31 23 48 44 44l24-75-59-136ZM342 129c17 48 21 107 9 167-7 31-23 48-44 44l-24-75 59-136Z" fill="url(#shemagh)" stroke="none" opacity=".55"/>
+  <path d="M184 166c0-56 30-87 73-87 44 0 74 32 74 88v67c0 59-32 94-75 94-42 0-72-35-72-94v-68Z" fill="url(#skin)"/>
+  <path d="M185 185c-13-7-25 2-23 21 2 20 13 31 27 27M329 185c13-7 25 2 23 21-2 20-13 31-27 27" fill="url(#skin)"/>
+  <path d="M204 183c11-9 25-10 38-3M274 180c13-7 26-6 36 3"/>
+  <ellipse cx="225" cy="205" rx="10" ry="13" fill="#183D31" stroke="none"/>
+  <ellipse cx="290" cy="205" rx="10" ry="13" fill="#183D31" stroke="none"/>
+  <circle cx="228" cy="201" r="3" fill="#fff" stroke="none"/><circle cx="293" cy="201" r="3" fill="#fff" stroke="none"/>
+  <path d="M257 207l-5 24 12 2" opacity=".45"/>
+  <path d="M226 253c16 19 46 21 64 0" fill="#FFF"/>
+  <path d="M232 257c15 8 33 9 49 0" stroke="#B96D57" stroke-width="3"/>
+  <path d="M201 239c-8 3-13 8-15 15M311 239c8 3 13 8 15 15" stroke="#C67658" opacity=".5"/>
+  <path d="M175 137c43-21 120-22 165 0l-5 36c-45-18-111-18-155 0l-5-36Z" fill="#173F32"/>
+  <path d="m139 105 110-48c8-3 16-3 24 0l110 48c11 5 11 15 0 20l-110 39c-8 3-16 3-24 0l-110-39c-11-5-11-15 0-20Z" fill="#245C47"/>
+  <path d="M373 126v55" stroke="#F3C13A"/>
+  <path d="M372 177c-12 5-15 21-7 35l8 12 9-12c8-14 4-30-10-35Z" fill="#F3C13A" stroke="#9C7121"/>
+  <path d="m115 321 12 25 28 4-20 19 5 28-25-13-25 13 5-28-20-19 28-4 12-25Z" fill="#F3C13A" stroke="#9C7121"/>
+</g></g>
+</svg>
