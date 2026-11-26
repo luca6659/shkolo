@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Check, Coins, Flame, Gem, Heart, MoonStar, Palette, ShieldCheck, Sparkles, Star, Sticker } from 'lucide-react'
 import { shopItems } from '../data'
+import { useSchool } from '../SchoolContext'
 import { useApp } from '../AppContext'
 import { PageHeading } from '../components/UI'
 
@@ -21,13 +22,24 @@ function ItemArt({ art }: { art: string }) {
 }
 
 export default function ShopPage() {
-  const { buyItem, owned } = useApp()
+  const { owned, mutate, setAvatar } = useSchool()
+  const { showToast } = useApp()
+  const [buying, setBuying] = useState(false)
+  async function buyItem(item: typeof shopItems[number]) {
+    setBuying(true)
+    try {
+      if (await mutate('school_buy', { p_item: item.id })) {
+        if (item.category === 'avatar') setAvatar(item.id === 'fox' ? 'ЛО' : 'СП')
+        showToast('Покупка готова!', item.name)
+      }
+    } finally { setBuying(false) }
+  }
   const [category, setCategory] = useState('all')
   const visible = category === 'all' ? shopItems : shopItems.filter((item) => item.category === category)
 
   return (
     <div className="page-container">
-      <PageHeading title="Drop shop" text="Меняй XP на стиль, стикеры и полезные бустеры" />
+      <PageHeading title="Drop shop" text="Меняй монеты и кристаллы на стиль, стикеры и полезные бустеры" />
       <div className="shop-hero">
         <div><span className="shop-hero-label"><Sticker size={18} /> FRESH DROP</span><h2>Your English.<br />Your vibe.</h2><p>Собирай монеты за разговоры и собери свой уникальный look.</p></div>
         <img src="/mascot.svg" alt="Талисман Школо с новой коллекцией" />
@@ -41,7 +53,7 @@ export default function ShopPage() {
           return <article className="shop-item" key={item.id}>
             <div className={`shop-item-art art-${item.category}`}><ItemArt art={item.art} /></div>
             <h3>{item.name}</h3><p>{item.description}</p>
-            <button className={isOwned ? 'owned-button' : 'buy-button'} onClick={() => buyItem(item)} disabled={isOwned}>
+            <button className={isOwned ? 'owned-button' : 'buy-button'} onClick={() => buyItem(item)} disabled={isOwned || buying}>
               {isOwned ? <><Check size={18} />Куплено</> : <>{item.currency === 'coins' ? <Coins size={18} /> : <Gem size={18} />}{item.price}</>}
             </button>
           </article>

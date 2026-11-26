@@ -6,9 +6,7 @@ export type Subject = {
   description: string
   color: string
   soft: string
-  progress: number
-  lessons: number
-  topics: string[]
+  lessonIds: number[]
 }
 
 export type ShopItem = {
@@ -19,13 +17,4 @@ export type ShopItem = {
   currency: 'coins' | 'gems'
   category: 'avatar' | 'theme' | 'sticker' | 'boost'
   art: string
-}
-
-export type Assignment = {
-  id: number
-  title: string
-  subject: string
-  deadline: string
-  done: number
-  total: number
 }

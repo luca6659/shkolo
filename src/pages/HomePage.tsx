@@ -1,6 +1,7 @@
 import { useRef, useState, type PointerEvent } from 'react'
-import { BookOpen, Check, ChevronRight, Crown, Flame, Headphones, Lock, MessageCircle, Mic2, Play, ShieldCheck, Sparkles, Star, Swords, Target, Trophy, Zap } from 'lucide-react'
+import { BookOpen, Check, ChevronRight, Flame, Headphones, Lock, MessageCircle, Mic2, Play, Star, Target, Trophy, Zap } from 'lucide-react'
 import { useApp } from '../AppContext'
+import { schoolDate, useSchool } from '../SchoolContext'
 import { Progress } from '../components/UI'
 
 const levels = [
@@ -29,7 +30,9 @@ function DraggableSticker({ text, className, onClick }: { text: string; classNam
 }
 
 export default function HomePage() {
-  const { startLesson, setPage, subject, showToast, completedLessons } = useApp()
+  const { startLesson, setPage, subject, showToast } = useApp()
+  const { days, completedLessons, streak, stratum } = useSchool()
+  const today = days.find(d => d.day === schoolDate())
   const nextLesson = levels.find((level) => !completedLessons.includes(level.id))?.id ?? 8
 
   return (
@@ -37,7 +40,7 @@ export default function HomePage() {
       <section className="learning-column">
         <div className="unit-banner">
           <div>
-            <button className="unit-back" onClick={() => setPage('subjects')}><BookOpen size={17} /> A2 · {subject.name}</button>
+            <button className="unit-back" onClick={() => setPage('subjects')}><BookOpen size={17} /> English · {subject.name}</button>
             <h1>Small talk,<br />big energy</h1>
             <p>От «hello» до настоящих диалогов — без зубрёжки</p>
           </div>
@@ -47,7 +50,7 @@ export default function HomePage() {
         </div>
 
         <button className="primary-button continue-button" onClick={() => startLesson(nextLesson)}>
-          <Play size={20} fill="currentColor" /> Продолжить: {levels[nextLesson - 1].title}
+          <Play size={20} fill="currentColor" /> {completedLessons.length ? 'Продолжить' : 'Начать'}: {levels[nextLesson - 1].title}
           <span>6 заданий</span>
         </button>
 
@@ -70,18 +73,12 @@ export default function HomePage() {
       <aside className="home-sidebar">
         <section className="side-block streak-block">
           <div className="side-title"><span><Flame size={21} /> Твой вайб</span><button onClick={() => setPage('profile')}>Всё</button></div>
-          <div className="streak-summary"><strong>12</strong><div><b>дней подряд</b><span>Рекорд — 18 дней</span></div></div>
-          <div className="week-days">{['П', 'В', 'С', 'Ч', 'П', 'С', 'В'].map((day, index) => <div key={`${day}-${index}`}><span className={index < 5 ? 'day-done' : index === 5 ? 'day-today' : ''}>{index < 5 ? <Check size={14} /> : day}</span><small>{index === 5 ? 'сегодня' : ''}</small></div>)}</div>
+          <div className="streak-summary"><strong>{streak}</strong><div><b>дней подряд</b><span>Серия занятий</span></div></div>
+          <div className="week-days">{Array.from({length:7}, (_,i) => schoolDate(i-6)).map(day => <div key={day}><span className={days.some(d => d.day === day) ? 'day-done' : ''}>{new Date(day+'T12:00:00Z').toLocaleDateString('ru',{weekday:'short'})}</span><small>{day === schoolDate() ? 'сегодня' : ''}</small></div>)}</div>
         </section>
-        <section className="side-block daily-goal"><div className="side-title"><span><Target size={21} /> Цель на день</span><b>2 / 3</b></div><Progress value={66} /><p>Ещё один урок — и daily goal в кармане!</p></section>
-        <section className="side-block quest-block">
-          <div className="side-title"><span><Zap size={21} /> Daily quests</span><span className="quest-time">6 ч 24 мин</span></div>
-          <div className="quest-item"><span className="quest-icon"><BookOpen size={20} /></span><div><b>Выучи 10 новых слов</b><Progress value={60} color="yellow" /><small>6 / 10 · награда 30 монет</small></div></div>
-          <div className="quest-item"><span className="quest-icon"><Sparkles size={20} /></span><div><b>Заработай 40 XP</b><Progress value={75} color="yellow" /><small>30 / 40 · награда 10 монет</small></div></div>
-          <div className="quest-item"><span className="quest-icon"><ShieldCheck size={20} /></span><div><b>5 ответов без ошибок</b><Progress value={40} color="yellow" /><small>2 / 5 · награда 1 кристалл</small></div></div>
-        </section>
-        <button className="battle-promo" onClick={() => setPage('leaderboard')}><span className="battle-promo-icon"><Swords size={28} /></span><span><b>Word battle</b><small>Покажи, чей English сильнее</small></span><ChevronRight size={20} /></button>
-        <div className="league-mini"><Crown size={22} /><span><b>Gold league</b><small>До повышения: 220 XP</small></span><Progress value={78} color="yellow" /></div>
+        <section className="side-block daily-goal"><div className="side-title"><span><Target size={21}/>Цель на день</span><b>{Math.min(today?.lessons ?? 0,3)} / 3</b></div><Progress value={Math.min(today?.lessons ?? 0,3)*100/3}/><p>Пройди три урока за день</p></section>
+        <section className="side-block quest-block"><div className="side-title"><span><Zap size={21}/>Квест на сегодня</span></div><div className="quest-item"><span className="quest-icon"><Star size={20}/></span><div><b>Заработай 40 XP</b><Progress value={Math.min(today?.xp ?? 0,40)*2.5} color="yellow"/><small>{Math.min(today?.xp ?? 0,40)} / 40 XP</small></div></div></section>
+        <button className="battle-promo" onClick={() => setPage('class')}><span className="battle-promo-icon"><BookOpen size={26}/></span><span><b>{stratum ? 'Страта '+stratum : 'Моя страта'}</b><small>Ученики и задания</small></span><ChevronRight size={20}/></button>
       </aside>
     </div>
   )

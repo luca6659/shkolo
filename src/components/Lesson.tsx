@@ -1,11 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, BookOpen, Check, Coins, Heart, Lightbulb, RotateCcw, Sparkles, Star, Trophy, Volume2, X } from 'lucide-react'
+import { useSchool } from '../SchoolContext'
 import { useApp } from '../AppContext'
 import { Modal, Progress } from './UI'
 import { lessons } from '../lessons'
 
 export default function Lesson() {
-  const { closeLesson, finishLesson, sound, setPage, activeLessonId } = useApp()
+  const { closeLesson, sound, setPage, activeLessonId } = useApp()
+  const { mutate } = useSchool()
+  const [attempt, setAttempt] = useState(() => crypto.randomUUID())
+  const [answers, setAnswers] = useState<string[]>([])
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState(false)
   const lesson = lessons.find((item) => item.id === activeLessonId) ?? lessons[0]
   const questions = lesson.questions
   const [index, setIndex] = useState(0)
@@ -26,8 +32,8 @@ export default function Lesson() {
 
   const ready = question.kind === 'input' ? input.trim().length > 0 : question.kind === 'pairs' ? Object.keys(pairs).length === 3 : selected.length > 0
   const progress = ((index + (checked ? 1 : 0)) / questions.length) * 100
-  const earnedXp = Math.max(10, score * 10)
-  const earnedCoins = score * 5
+  const earnedXp = hearts ? score * 10 : 0
+  const earnedCoins = hearts ? score * 5 : 0
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -85,6 +91,7 @@ export default function Lesson() {
     if (question.kind === 'pairs') answer = Object.entries(pairs).map(([key, value]) => `${key}=${value}`).sort().join(';')
     const expected = question.kind === 'pairs' ? question.answer.split(';').sort().join(';') : question.answer
     const isCorrect = answer === expected
+    setAnswers(current => [...current, answer])
     setCorrect(isCorrect)
     setChecked(true)
     playFeedback(isCorrect ? 'correct' : 'wrong')
@@ -92,9 +99,15 @@ export default function Lesson() {
     else setHearts((value) => Math.max(0, value - 1))
   }
 
-  const next = () => {
+  const next = async () => {
     if (hearts === 0 || index === questions.length - 1) {
-      finishLesson(earnedXp, earnedCoins)
+      if (hearts > 0) {
+        setSaving(true)
+        const saved = await mutate('school_finish', { p_attempt: attempt, p_lesson: activeLessonId, p_answers: answers })
+        setSaving(false)
+        setSaveError(!saved)
+        if (!saved) return
+      }
       setResult(true)
       return
     }
@@ -105,6 +118,7 @@ export default function Lesson() {
   }
 
   const restart = () => {
+    setAttempt(crypto.randomUUID()); setAnswers([]); setSaveError(false)
     setIndex(0); setSelected(''); setInput(''); setPairs({}); setActiveLeft(''); setChecked(false); setCorrect(false); setHearts(5); setScore(0); setResult(false)
   }
 
@@ -130,6 +144,7 @@ export default function Lesson() {
         <p>{failed ? 'Ошибки — часть процесса. Повтори урок, и фразы станут ещё понятнее.' : 'Ещё немного — и ты заговоришь свободнее, увереннее и без подсказок.'}</p>
         <div className="result-stars">{[0, 1, 2].map((item) => <Star key={item} size={66} fill={item < Math.max(1, Math.round((score / questions.length) * 3)) ? 'currentColor' : 'none'} className={item < Math.max(1, Math.round((score / questions.length) * 3)) ? 'star-earned' : 'star-empty'} />)}</div>
         <div className="result-rewards"><div><Sparkles size={24} /><span><small>Опыт</small><b>+{earnedXp} XP</b></span></div><div><Coins size={24} /><span><small>Монеты</small><b>+{earnedCoins}</b></span></div><div><Check size={24} /><span><small>Точность</small><b>{Math.round((score / questions.length) * 100)}%</b></span></div></div>
+        {score === 6 && <p>Без ошибок · +1 кристалл</p>}
         <button className="primary-button result-main-button" onClick={() => { closeLesson(); setPage('home') }}>Вернуться к карте<ArrowRight size={20} /></button>
         <button className="text-button" onClick={restart}><RotateCcw size={17} />Пройти ещё раз</button>
       </section>
@@ -156,7 +171,7 @@ export default function Lesson() {
     </main>
     <footer className={`lesson-footer ${checked ? correct ? 'feedback-correct' : 'feedback-wrong' : ''}`}>
       {checked ? <div className="answer-feedback"><span>{correct ? <Check size={28} /> : <Lightbulb size={28} />}</span><div><h2>{correct ? ['Nailed it!', 'Exactly!', 'So good!'][index % 3] : 'Разберём вместе'}</h2><p>{question.explanation}</p></div></div> : <div className="lesson-tip"><Lightbulb size={19} /><span>{question.kind === 'pairs' ? 'Выбери слово слева, затем его перевод справа' : 'Думай как в реальном диалоге, а не как в учебнике'}</span></div>}
-      {!checked ? <button className="primary-button check-button" disabled={!ready} onClick={checkAnswer}>Проверить</button> : <button className={`primary-button check-button ${!correct ? 'wrong-next' : ''}`} onClick={next}>{index === questions.length - 1 || hearts === 0 ? 'Завершить' : 'Продолжить'}<ArrowRight size={19} /></button>}
+      {!checked ? <button className="primary-button check-button" disabled={!ready} onClick={checkAnswer}>Проверить</button> : <button className={`primary-button check-button ${!correct ? 'wrong-next' : ''}`} disabled={saving} onClick={next}>{saving ? 'Сохраняем…' : saveError ? 'Повторить сохранение' : index === questions.length - 1 || hearts === 0 ? 'Завершить' : 'Продолжить'}<ArrowRight size={19} /></button>}
     </footer>
     <Modal open={confirmClose} onClose={() => setConfirmClose(false)} title="Выйти из урока" className="confirm-modal">
       <img src="/mascot.svg" alt="Талисман Школо" /><h2>Уже уходишь?</h2><p>Прогресс этого урока не сохранится, но твоя серия останется на месте.</p><button className="primary-button" onClick={() => setConfirmClose(false)}>Остаться и учиться</button><button className="text-button danger-text" onClick={closeLesson}>Выйти из урока</button>

@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Bell, BookOpen, Check, ChevronDown, Coins, Crown, Flame, Gem, Home, Medal, Settings, ShoppingBag, Sparkles, Swords, Trophy, Users } from 'lucide-react'
+import { Bell, BookOpen, ChevronDown, Coins, Flame, Gem, Home, Settings, ShoppingBag, Sparkles, Trophy, Users } from 'lucide-react'
 import { AppProvider, useApp } from './AppContext'
+import { SchoolProvider, useSchool } from './SchoolContext'
+import AuthScreen from './components/AuthScreen'
 import Lesson from './components/Lesson'
-import { Avatar, Progress } from './components/UI'
+import { Avatar, Modal } from './components/UI'
 import ClassPage from './pages/ClassPage'
 import HomePage from './pages/HomePage'
 import LeaderboardPage from './pages/LeaderboardPage'
@@ -21,26 +23,35 @@ const navigation: { id: PageId; label: string; icon: typeof Home }[] = [
   { id: 'profile', label: 'Профиль', icon: Settings },
 ]
 
-const pageTitles: Record<PageId, string> = { home: 'Твой English era', subjects: 'Навыки английского', shop: 'Drop shop', leaderboard: 'English league', class: 'Кабинет преподавателя', profile: 'Твой профиль' }
+const pageTitles: Record<PageId, string> = { home: 'Твой English era', subjects: 'Навыки английского', shop: 'Drop shop', leaderboard: 'English league', class: 'Моя страта', profile: 'Твой профиль' }
 
 function Shell() {
-  const { user, page, setPage, coins, gems, streak, avatar, lessonOpen, toast, showToast, xp } = useApp()
+  const { user, authReady, passwordRecovery } = useApp()
+  if (!authReady) return <main className="auth-loading"><div className="auth-spinner" /><p>Подключаемся…</p></main>
+  if (!user || passwordRecovery) return <AuthScreen />
+  return <SchoolProvider id={user.id} key={user.id}><SchoolShell /></SchoolProvider>
+}
+
+function SchoolShell() {
+  const { page, setPage, lessonOpen, toast, notifications } = useApp()
+  const { self, coins, gems, streak, avatar, stratum, homework, reload } = useSchool()
+  const pending = homework.filter(h => notifications && h.stratum === stratum && !h.done && !h.archived)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
-  const [unread, setUnread] = useState(true)
+  const unread = pending.length > 0
 
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }) }, [page])
 
-  const goTo = (id: PageId) => { setPage(id); setNotificationsOpen(false) }
+  const goTo = (id: PageId) => {
+    setPage(id)
+    setNotificationsOpen(false)
+    if (id === 'class' || id === 'leaderboard' || id === 'profile') void reload()
+  }
 
   return (
     <div className="app-shell">
       <aside className="desktop-sidebar">
         <button className="brand" onClick={() => goTo('home')} aria-label="школо! — на главную"><span className="brand-wordmark">школо<span>!</span><small>english, но по кайфу</small></span><i>GO<br />SAY<br />HI</i></button>
-        <nav className="side-nav" aria-label="Основная навигация">{navigation.map((item) => { const Icon = item.icon; return <button key={item.id} className={page === item.id ? 'active' : ''} onClick={() => goTo(item.id)}><Icon size={23} strokeWidth={page === item.id ? 2.7 : 2.2} /><span>{item.label}</span>{item.id === 'class' && <small>24</small>}</button> })}</nav>
-        <div className="sidebar-bottom">
-          <button className="sidebar-battle" onClick={() => goTo('leaderboard')}><span><Swords size={24} /></span><div><b>Word battle</b><small>Вызвать друга</small></div></button>
-          <div className="sidebar-league"><div><Crown size={19} /><b>Gold talkers</b><span>7 место</span></div><Progress value={72} color="yellow" /><small>До финала 2 дня</small></div>
-        </div>
+        <nav className="side-nav" aria-label="Основная навигация">{navigation.map((item) => { const Icon = item.icon; return <button key={item.id} className={page === item.id ? 'active' : ''} onClick={() => goTo(item.id)}><Icon size={23} strokeWidth={page === item.id ? 2.7 : 2.2} /><span>{item.label}</span>{item.id === 'class' && stratum && <small>{stratum}</small>}</button> })}</nav>
       </aside>
 
       <header className="mobile-header">
@@ -50,16 +61,16 @@ function Shell() {
 
       <div className="app-content">
         <header className="topbar">
-          <div><h2>{pageTitles[page]}</h2>{page === 'home' && <button onClick={() => goTo('subjects')}>English · A2 <ChevronDown size={15} /></button>}</div>
+          <div><h2>{pageTitles[page]}</h2>{page === 'home' && <button onClick={() => goTo('subjects')}>Английский <ChevronDown size={15} /></button>}</div>
           <div className="topbar-actions">
             <button className="currency-pill streak-pill" onClick={() => goTo('profile')} title="Серия дней"><Flame size={21} /><b>{streak}</b></button>
             <button className="currency-pill coins-pill" onClick={() => goTo('shop')} title="Монеты"><Coins size={21} /><b>{coins.toLocaleString('ru')}</b></button>
             <button className="currency-pill gems-pill" onClick={() => goTo('shop')} title="Кристаллы"><Gem size={20} /><b>{gems}</b></button>
             <div className="notification-wrap">
               <button className="icon-button notification-button" onClick={() => setNotificationsOpen(!notificationsOpen)} aria-label="Уведомления" aria-expanded={notificationsOpen}><Bell size={22} />{unread && <i />}</button>
-              {notificationsOpen && <div className="notifications-panel"><div><h3>Уведомления</h3><button onClick={() => { setUnread(false); showToast('Все уведомления прочитаны') }} aria-label="Прочитать все"><Check size={18} /></button></div><button onClick={() => { goTo('home'); setUnread(false) }}><span className="notice-icon notice-fire"><Flame size={22} /></span><span><b>Не потеряй серию!</b><small>Пройди один урок сегодня, чтобы сохранить 12 дней подряд.</small><em>10 минут назад</em></span></button><button onClick={() => { goTo('leaderboard'); setUnread(false) }}><span className="notice-icon notice-trophy"><Medal size={22} /></span><span><b>Новый турнир</b><small>Weekly English Cup уже начался. Помоги своей команде!</small><em>1 час назад</em></span></button></div>}
+
             </div>
-            <button className="top-profile" onClick={() => goTo('profile')}><Avatar text={avatar} size="sm" /><span><b>{user.name}</b><small>Уровень {Math.floor(xp / 500) + 1}</small></span><ChevronDown size={16} /></button>
+            <button className="top-profile" onClick={() => goTo('profile')}><Avatar text={avatar} size="sm" /><span><b>{self.name}</b><small>Уровень {Math.floor(self.xp / 500) + 1}</small></span><ChevronDown size={16} /></button>
           </div>
         </header>
 
@@ -75,6 +86,9 @@ function Shell() {
 
       <nav className="mobile-nav" aria-label="Мобильная навигация">{navigation.map((item) => { const Icon = item.icon; return <button key={item.id} className={page === item.id ? 'active' : ''} onClick={() => goTo(item.id)}><Icon size={22} /><span>{item.label}</span></button> })}</nav>
 
+      <Modal open={notificationsOpen} onClose={() => setNotificationsOpen(false)} title="Уведомления">
+        <h2>Уведомления</h2>{pending.length ? pending.map(h => <button key={h.id} className="settings-link" onClick={() => goTo('class')}>{h.title} · до {h.due}</button>) : <p>Новых уведомлений пока нет.</p>}
+      </Modal>
       {toast && <div className="app-toast" role="status"><span><Sparkles size={22} /></span><div><b>{toast.title}</b>{toast.text && <p>{toast.text}</p>}</div></div>}
       {lessonOpen && <Lesson />}
     </div>
