@@ -1,16 +1,16 @@
 import { useState } from 'react'
-import { Award, Bell, BookOpen, CalendarDays, Check, ChevronRight, Coins, Crown, Download, Flame, Gem, LogOut, Moon, Music2, ShieldCheck, Sparkles, Star, Target, Trophy, Volume2, Zap } from 'lucide-react'
+import { Award, Bell, BookOpen, CalendarDays, Check, ChevronRight, Coins, Crown, Download, Flame, Gem, Moon, Music2, ShieldCheck, Sparkles, Star, Target, Trophy, Volume2, Zap } from 'lucide-react'
 import { useApp } from '../AppContext'
 import { Avatar, PageHeading, Progress, Toggle } from '../components/UI'
 
 export default function ProfilePage() {
-  const { user, logout, xp, coins, gems, streak, completed, avatar, setAvatar, dark, setDark, sound, setSound, notifications, setNotifications, parentMode, setParentMode, showToast } = useApp()
+  const { user, xp, coins, gems, streak, completed, avatar, setAvatar, dark, setDark, sound, setSound, notifications, setNotifications, parentMode, setParentMode, showToast } = useApp()
   const [timeLimit, setTimeLimit] = useState(45)
   const level = Math.floor(xp / 500) + 1
   const levelProgress = ((xp % 500) / 500) * 100
 
   const downloadReport = () => {
-    const content = `Отчёт Школо\nУченик: ${user?.name}\nEmail: ${user?.email}\nУровень: ${level}\nОпыт: ${xp} XP\nУроков пройдено: ${completed}\nСерия: ${streak} дней\nЛимит времени: ${timeLimit} минут`
+    const content = `Отчёт Школо\nУченик: ${user.name}\nУровень: ${level}\nОпыт: ${xp} XP\nУроков пройдено: ${completed}\nСерия: ${streak} дней\nЛимит времени: ${timeLimit} минут`
     const url = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }))
     const link = document.createElement('a')
     link.href = url
@@ -25,7 +25,7 @@ export default function ProfilePage() {
       <PageHeading title="Профиль" text="Твои достижения, награды и настройки" />
       <section className="profile-hero">
         <div className="profile-avatar-wrap"><Avatar text={avatar} size="xl" /><span className="profile-avatar-badge"><Sparkles size={18} /></span></div>
-        <div className="profile-info"><div className="profile-name"><h2>{user?.name}</h2><span>English · A2</span></div><p>{user?.email} · in English era</p><div className="level-line"><b>Уровень {level}</b><span>{xp % 500} / 500 XP</span></div><Progress value={levelProgress} /></div>
+        <div className="profile-info"><div className="profile-name"><h2>{user.name}</h2><span>English · A2</span></div><p>Локальный профиль · in English era</p><div className="level-line"><b>Уровень {level}</b><span>{xp % 500} / 500 XP</span></div><Progress value={levelProgress} /></div>
         <div className="profile-currencies"><span><Coins size={20} />{coins}</span><span><Gem size={20} />{gems}</span></div>
       </section>
 
@@ -62,8 +62,7 @@ export default function ProfilePage() {
             <div className="range-labels"><span>15 мин</span><span>120 мин</span></div>
             <button className="secondary-button" onClick={downloadReport}><Download size={17} />Скачать отчёт</button>
           </div>}
-          <button className="settings-link" onClick={() => showToast('Данные профиля', `${user?.name} · English A2 · ${user?.email}`)}><span>Личные данные и безопасность</span><ChevronRight size={19} /></button>
-          <button className="settings-link logout-link" onClick={logout}><span><LogOut size={17} /> Выйти из аккаунта</span><ChevronRight size={19} /></button>
+          <button className="settings-link" onClick={() => showToast('Локальный профиль', `${user.name} · English A2 · Прогресс хранится на этом устройстве`)}><span>Данные профиля</span><ChevronRight size={19} /></button>
         </section>
       </div>
     </div>

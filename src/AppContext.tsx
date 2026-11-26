@@ -1,36 +1,12 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { subjects } from './data'
-import { supabase } from './lib/supabase'
-import type { User as SupabaseUser } from '@supabase/supabase-js'
 import type { PageId, ShopItem, Subject } from './types'
 
 type Toast = { title: string; text?: string } | null
-type User = { name: string; email: string }
-
-function profileFromAuth(authUser: SupabaseUser): User {
-  const email = authUser.email ?? ''
-  const metadataName = authUser.user_metadata?.name
-  return { name: typeof metadataName === 'string' && metadataName.trim() ? metadataName : email.split('@')[0], email }
-}
-
-function authError(message: string) {
-  if (/invalid login credentials/i.test(message)) return 'Email или пароль не совпадают. Проверь данные.'
-  if (/email not confirmed/i.test(message)) return 'Email этого аккаунта ещё не подтверждён в Supabase.'
-  if (/token.*expired|invalid.*token|otp.*expired/i.test(message)) return 'Код неверный или устарел. Запроси новый.'
-  if (/rate limit|too many requests/i.test(message)) return 'Слишком много попыток. Подожди минуту и повтори.'
-  if (/failed to fetch|network/i.test(message)) return 'Нет соединения с сервером. Проверь интернет.'
-  return message
-}
+type User = { name: string }
 
 type AppContextValue = {
-  user: User | null
-  authReady: boolean
-  passwordRecovery: boolean
-  resetPassword: (email: string) => Promise<string | null>
-  verifyRecoveryCode: (email: string, code: string) => Promise<string | null>
-  updatePassword: (password: string) => Promise<string | null>
-  login: (email: string, password: string) => Promise<string | null>
-  logout: () => Promise<void>
+  user: User
   page: PageId
   setPage: (page: PageId) => void
   subject: Subject
@@ -74,9 +50,7 @@ function stored<T>(key: string, initial: T): T {
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [authReady, setAuthReady] = useState(false)
-  const [passwordRecovery, setPasswordRecovery] = useState(false)
+  const user: User = { name: 'Ученик' }
   const [page, setPage] = useState<PageId>('home')
   const [subjectId, setSubjectId] = useState('speaking')
   const [lessonOpen, setLessonOpen] = useState(false)
@@ -88,7 +62,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [streak] = useState(12)
   const [completed, setCompleted] = useState(() => stored('completed', 34))
   const [owned, setOwned] = useState<string[]>(() => stored('owned', []))
-  const [avatar, setAvatar] = useState(() => stored('avatar', 'АК'))
+  const [avatar, setAvatar] = useState(() => stored('avatar', 'УЧ'))
   const [dark, setDark] = useState(() => stored('dark', false))
   const [sound, setSound] = useState(() => stored('sound', true))
   const [notifications, setNotifications] = useState(() => stored('notifications', true))
@@ -111,68 +85,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => { localStorage.setItem('shkolo-avatar', JSON.stringify(avatar)) }, [avatar])
   useEffect(() => { localStorage.setItem('shkolo-sound', JSON.stringify(sound)) }, [sound])
   useEffect(() => { localStorage.setItem('shkolo-notifications', JSON.stringify(notifications)) }, [notifications])
-
-  useEffect(() => {
-    let active = true
-    const applyUser = (authUser: SupabaseUser | null) => {
-      if (!active) return
-      const nextUser = authUser ? profileFromAuth(authUser) : null
-      setUser(nextUser)
-      if (nextUser) setAvatar(nextUser.name.slice(0, 2).toUpperCase())
-    }
-    supabase.auth.getSession().then(({ data, error }) => {
-      if (!error) applyUser(data.session?.user ?? null)
-      if (active) setAuthReady(true)
-    }).catch(() => { if (active) setAuthReady(true) })
-    const { data } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY') setPasswordRecovery(true)
-      applyUser(session?.user ?? null)
-    })
-    return () => { active = false; data.subscription.unsubscribe() }
-  }, [])
-
-  const resetPassword = async (email: string) => {
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase())
-      return error ? authError(error.message) : null
-    } catch (error) {
-      return authError(error instanceof Error ? error.message : 'Не удалось отправить письмо.')
-    }
-  }
-
-  const verifyRecoveryCode = async (email: string, code: string) => {
-    try {
-      const { error } = await supabase.auth.verifyOtp({ email: email.trim().toLowerCase(), token: code, type: 'recovery' })
-      if (!error) setPasswordRecovery(true)
-      return error ? authError(error.message) : null
-    } catch (error) {
-      return authError(error instanceof Error ? error.message : 'Не удалось подтвердить код.')
-    }
-  }
-
-  const updatePassword = async (password: string) => {
-    try {
-      const { error } = await supabase.auth.updateUser({ password })
-      if (!error) setPasswordRecovery(false)
-      return error ? authError(error.message) : null
-    } catch (error) {
-      return authError(error instanceof Error ? error.message : 'Не удалось изменить пароль.')
-    }
-  }
-
-  const login = async (email: string, password: string) => {
-    try {
-      const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password })
-      return error ? authError(error.message) : null
-    } catch (error) {
-      return authError(error instanceof Error ? error.message : 'Не удалось войти. Попробуй ещё раз.')
-    }
-  }
-
-  const logout = async () => {
-    await supabase.auth.signOut()
-    setUser(null); setPage('home'); setLessonOpen(false)
-  }
 
   const showToast = (title: string, text?: string) => {
     setToast({ title, text })
@@ -205,13 +117,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }
 
   const value = useMemo<AppContextValue>(() => ({
-    user, authReady, passwordRecovery, resetPassword, verifyRecoveryCode, updatePassword, login, logout,
+    user,
     page, setPage, subject, setSubjectId, lessonOpen, activeLessonId, completedLessons,
     startLesson: (lessonId = 4) => { setActiveLessonId(lessonId); setLessonOpen(true) }, closeLesson: () => setLessonOpen(false),
     coins, gems, xp, streak, completed, finishLesson, buyItem, owned, avatar, setAvatar,
     dark, setDark, sound, setSound, notifications, setNotifications, parentMode, setParentMode,
     toast, showToast,
-  }), [user, authReady, passwordRecovery, page, subject, lessonOpen, activeLessonId, completedLessons, coins, gems, xp, streak, completed, owned, avatar, dark, sound, notifications, parentMode, toast])
+  }), [page, subject, lessonOpen, activeLessonId, completedLessons, coins, gems, xp, streak, completed, owned, avatar, dark, sound, notifications, parentMode, toast])
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }

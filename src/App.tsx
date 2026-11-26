@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Bell, BookOpen, Check, ChevronDown, Coins, Crown, Flame, Gem, Home, Medal, Settings, ShoppingBag, Sparkles, Swords, Trophy, Users } from 'lucide-react'
 import { AppProvider, useApp } from './AppContext'
-import AuthScreen from './components/AuthScreen'
 import Lesson from './components/Lesson'
 import { Avatar, Progress } from './components/UI'
 import ClassPage from './pages/ClassPage'
@@ -25,16 +24,13 @@ const navigation: { id: PageId; label: string; icon: typeof Home }[] = [
 const pageTitles: Record<PageId, string> = { home: 'Твой English era', subjects: 'Навыки английского', shop: 'Drop shop', leaderboard: 'English league', class: 'Кабинет преподавателя', profile: 'Твой профиль' }
 
 function Shell() {
-  const { user, authReady, passwordRecovery, page, setPage, coins, gems, streak, avatar, lessonOpen, toast, showToast, xp } = useApp()
+  const { user, page, setPage, coins, gems, streak, avatar, lessonOpen, toast, showToast, xp } = useApp()
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [unread, setUnread] = useState(true)
 
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }) }, [page])
 
   const goTo = (id: PageId) => { setPage(id); setNotificationsOpen(false) }
-
-  if (!authReady) return <main className="auth-loading"><span className="brand-wordmark">школо<span>!</span></span><div className="auth-spinner" /><p>Подключаем твой English era…</p></main>
-  if (!user || passwordRecovery) return <AuthScreen />
 
   return (
     <div className="app-shell">
