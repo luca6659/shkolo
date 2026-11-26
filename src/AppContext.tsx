@@ -15,8 +15,7 @@ function profileFromAuth(authUser: SupabaseUser): User {
 
 function authError(message: string) {
   if (/invalid login credentials/i.test(message)) return 'Email или пароль не совпадают. Проверь данные.'
-  if (/email not confirmed/i.test(message)) return 'В Supabase ещё включено подтверждение email. Отключи Confirm email в настройках Email provider.'
-  if (/user already registered/i.test(message)) return 'Такой аккаунт уже есть. Перейди ко входу.'
+  if (/email not confirmed/i.test(message)) return 'Email этого аккаунта ещё не подтверждён в Supabase.'
   if (/token.*expired|invalid.*token|otp.*expired/i.test(message)) return 'Код неверный или устарел. Запроси новый.'
   if (/rate limit|too many requests/i.test(message)) return 'Слишком много попыток. Подожди минуту и повтори.'
   if (/failed to fetch|network/i.test(message)) return 'Нет соединения с сервером. Проверь интернет.'
@@ -31,7 +30,6 @@ type AppContextValue = {
   verifyRecoveryCode: (email: string, code: string) => Promise<string | null>
   updatePassword: (password: string) => Promise<string | null>
   login: (email: string, password: string) => Promise<string | null>
-  register: (name: string, email: string, password: string) => Promise<string | null>
   logout: () => Promise<void>
   page: PageId
   setPage: (page: PageId) => void
@@ -171,20 +169,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const register = async (name: string, email: string, password: string) => {
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim().toLowerCase(), password,
-        options: { data: { name: name.trim() } },
-      })
-      if (error) return authError(error.message)
-      if (!data.session) return 'Аккаунт создан, но Supabase всё ещё требует подтверждение email. Отключи Confirm email в настройках Email provider и зарегистрируй новый аккаунт.'
-      return null
-    } catch (error) {
-      return authError(error instanceof Error ? error.message : 'Не удалось создать аккаунт. Попробуй ещё раз.')
-    }
-  }
-
   const logout = async () => {
     await supabase.auth.signOut()
     setUser(null); setPage('home'); setLessonOpen(false)
@@ -221,7 +205,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }
 
   const value = useMemo<AppContextValue>(() => ({
-    user, authReady, passwordRecovery, resetPassword, verifyRecoveryCode, updatePassword, login, register, logout,
+    user, authReady, passwordRecovery, resetPassword, verifyRecoveryCode, updatePassword, login, logout,
     page, setPage, subject, setSubjectId, lessonOpen, activeLessonId, completedLessons,
     startLesson: (lessonId = 4) => { setActiveLessonId(lessonId); setLessonOpen(true) }, closeLesson: () => setLessonOpen(false),
     coins, gems, xp, streak, completed, finishLesson, buyItem, owned, avatar, setAvatar,
